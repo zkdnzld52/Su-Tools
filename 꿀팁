@@ -1,0 +1,6 @@
+replace()로 백슬래시(\)를 슬래시(/)로 바꾸기
+  - string 앞에 r을 붙여주기
+  path = r'C:\workspace\test\trans\음성 파일 샘플'
+  path = path.replace('\\','/')
+  path = C:/workspace/test/trans/음성 파일 샘플
+  
