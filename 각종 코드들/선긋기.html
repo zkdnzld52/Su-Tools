@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>test</title>
+  <style>
+    canvas {border:1px solid black; background-image: url(./high_speed_load_test.jpg); background-size: 100% 100%;}
+  </style>
+</head>
+<body style="-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none">
+  <canvas id="canvas" width="1000" height="700" >
+    이 브라우저는 캔버스를 지원하지 않습니다.
+  </canvas>
+	<table id = "table" border="1" align="right" width="850">
+		<tr>
+    	<td align="center" width="20%" >
+    	     번호
+    	</td>
+    	<td align="center" width="20%">
+    	     Start_x
+    	</td>
+    	<td align="center" width="20%">
+    	     Start_y
+    	</td>
+    	<td align="center" width="20%">
+    	     End_x
+    	</td>
+    	<td align="center" width="20%">
+    	     End_y
+    	</td>
+    </tr>
+  </table>
+  <div>
+    색상 : <select id="selcolor">
+          	<option value="black">검정</option>
+          	<option value="red">빨강</option>
+          	<option value="rgba(0,255,0,1.0)">초록</option>
+          	<option value="blue">파랑</option>
+          	<option value="magenta">분홍</option>
+        	</select>
+    굵기 : <select id="selwidth">
+          	<option value="0.2">얇게</option>
+          	<option value="3">중간</option>
+          	<option value="5">굵게</option>
+        	</select>
+    <input type="button" id="clear" value="모두 지움"/>
+	  <select id="line_height">
+			<option value="20">좁은 간격</option>
+			<option value="50">보통 간격</option>
+			<option value="100">넓은 간격</option>
+	  </select>
+	  <input type="button" id="creat_line" value="라인 생성"/>
+	  <input type="button" id="rollback" value="되돌리기"/>
+  </div>
+  <script>
+
+    var canvas;
+    var ctx;
+    var sx, sy;                  // 드래그 시작점
+    var ex, ey;                  // 드래그 끝점
+    var drawing;                // 그리고 있는 중인가
+    var backup;
+    var table = document.getElementById('table')
+    var cnt = 1;
+    var j = 0;
+		var line_cnt = 0;
+		var a_line=[];
+    var moving = 0;
+
+		window.onload = function() {
+			canvas = document.getElementById("canvas");
+			if (canvas == null || canvas.getContext == null) return;
+			ctx = canvas.getContext("2d");
+			ctx.beginPath();
+			canvas.onmousedown = function(e) {
+				e.preventDefault();
+				console.log("마우스 클릭")
+				j+=1;
+				console.log("j값 :",j)
+				
+				if(j%2==1){
+					// 시작 좌표 구함
+					if(line_cnt==0){
+						sx = canvasX(e.clientX);
+						sy = 700;
+					}
+					// 백업 뜨고 그리기 시작
+					backup = ctx.getImageData(0, 0, canvas.width, canvas.height);
+					drawing = true;
+					var rowlen = table.rows.length;
+					var newRow = table.insertRow(rowlen);
+					newRow.insertCell(0).innerHTML = cnt;
+					// line_cnt == a_line.length 하면 한 라인 그냥 무시하고 넘어감
+					if(line_cnt==a_line.length){
+						sy = 700;
+					}
+					newRow.insertCell(1).innerHTML = sx;
+					newRow.insertCell(2).innerHTML = sy;
+					cnt+=1
+				}	else if(j==2){
+					console.log("B 발동");
+					var rowlen = table.rows.length-1;
+         	const newCell = table.rows[rowlen].insertCell(-1);
+         	newCell.innerHTML = ex;
+         	const newCell2 = table.rows[rowlen].insertCell(-1);
+         	newCell2.innerHTML = ey;
+					if(a_line.length == 0){
+						table.deleteRow(cnt-1);
+						cnt -= 1;
+						line_cnt -=1;
+						sy = canvas.height;
+					}
+         	j=0;
+					line_cnt +=1;
+					drawing=false;
+          test_x = ex;
+          test_y = ey;
+          test_a = sx;
+          test_b = sy;
+					sx=ex;
+					sy=ey;
+					if(line_cnt == a_line.length){
+						for(i=0; i<a_line.length; i++){
+							ctx.clearRect(-1, a_line[i]-1, 1002, 1.5);
+							console.log(i+1,"번째 줄 삭제")
+						}
+						a_line=[];
+						line_cnt=0;
+					}
+					backup = ctx.getImageData(0, 0, canvas.width, canvas.height)
+					// if(table.getElementsByTagName('tr')[line_cnt].getElementsByTagName('td')[4].innerHTML == "undefined"){
+					// 	table.deleteRow(line_cnt);
+					// 	line_cnt -= 1;
+					// 	cnt -=1;
+					// }
+				}
+				// moving = 0;
+				// moving += 1;
+			}
+
+			canvas.onmousemove = function(e) {
+				e.preventDefault();
+				if(j==1){
+					ex = canvasX(e.clientX);
+				}
+				// 백업 복구하고 현재 선 그림
+				if (drawing) {
+					ctx.putImageData(backup, 0, 0);
+					ctx.beginPath();
+					if(line_cnt == 0){
+						sy = 700;
+						ctx.moveTo(sx, sy);
+						ey = a_line[line_cnt]
+						ctx.lineTo(ex, ey);
+					}else if(line_cnt == a_line.length){
+						sy = a_line[line_cnt-1];
+						ctx.moveTo(sx, sy);
+						ey = 0;
+						ctx.lineTo(ex, ey);
+					}else{
+						sy = a_line[line_cnt-1];
+						ctx.moveTo(sx, sy);
+						ey = a_line[line_cnt];
+						ctx.lineTo(ex, ey);
+					}
+					if(line_cnt == a_line.length){
+            // line_cnt-1로 하면 라인 끝까지 가능
+            // line_cnt로 하면 한 라인 무시 하고 다시 처음부터
+            console.log(a_line)
+            line_cnt=0;
+            sx = canvasX(e.clientX);
+            sy = 700;
+						ctx.moveTo(sx, sy);
+						ey = a_line[line_cnt]
+						ctx.lineTo(ex, ey);
+					}
+					ctx.stroke();
+					moving +=1;
+				}
+				ex = canvasX(e.clientX);
+			}
+			canvas.onmouseup = function(e) {
+				e.preventDefault();
+			}  
+		}
+
+		var selcolor = document.getElementById("selcolor");
+		selcolor.onchange = function(e) {
+			ctx.strokeStyle = selcolor.value;
+			ctx.fillStyle = selcolor.value;
+		}
+
+		var selwidth = document.getElementById("selwidth");
+		selwidth.onchange = function(e) {
+			ctx.lineWidth = selwidth.value;
+		}
+
+		var btn_rollback = document.getElementById("rollback");
+		btn_rollback.onclick = function(e){
+      ctx.clearRect(test_x, test_y+0.5,test_a-test_x,Math.abs(test_b-test_y)-1.5);
+      console.log(test_x, test_y+0.5,test_a-test_x,Math.abs(test_b-test_y)-1.5);
+      ctx = canvas.getContext("2d");
+      ctx.beginPath();
+      table.deleteRow(cnt-1);
+      line_cnt -=1;
+      cnt -=1;
+      sx=test_a;
+      sy=test_b;
+		}
+
+		var btnclear = document.getElementById("clear");
+		btnclear.onclick = function(e) {
+		console.clear()
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		cnt = 1;
+		j=0;
+		line_cnt = 0;
+		a_line.length=0;
+		for (let i = 1; i<table.rows.length; i){
+			table.deleteRow(i);
+		}
+	}
+
+	var btn_create_lint = document.getElementById("creat_line");
+	btn_create_lint.onclick = function(e){
+		if (a_line.length == 0){
+			a_line.push(700-line_height.value);
+		}else{
+			if(parseInt(a_line[a_line.length-1])-parseInt(line_height.value)>0)
+			a_line[a_line.length] = parseInt(a_line[a_line.length-1])-parseInt(line_height.value);
+		}
+		first_x = -1;
+		last_x = 1002;
+		ctx = canvas.getContext("2d");
+		ctx.beginPath();
+		ctx.moveTo(first_x, a_line[a_line.length-1]);
+		ctx.lineTo(last_x, a_line[a_line.length-1]);
+		ctx.stroke();
+	}    
+
+	function canvasX(clientX) {
+		var bound = canvas.getBoundingClientRect();
+		var bw = 5;
+		return (clientX - bound.left - bw) * (canvas.width / (bound.width - bw * 2));
+	}
+
+	function canvasY(clientY) {
+		var bound = canvas.getBoundingClientRect();
+		var bw = 5;
+		return (clientY - bound.top - bw) * (canvas.height / (bound.height - bw * 2));
+	}
+
+ </script>
+</body>
+</html>
